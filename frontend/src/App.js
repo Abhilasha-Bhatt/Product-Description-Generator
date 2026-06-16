@@ -1,9 +1,9 @@
-import Home from "./Home";
+import HomePage from "./HomePage";
 
 function App() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <Home />
+      <HomePage />
     </div>
   );
 }
