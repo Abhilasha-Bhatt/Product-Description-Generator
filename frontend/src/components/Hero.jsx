@@ -40,7 +40,7 @@ function useTypewriter(items, speed = 50, pause = 1800) {
   return display;
 }
 
-export default function Hero() {
+export default function Hero({ onNavigate }) {
   const ticker = useTypewriter(TICKER);
 
   return (
@@ -61,7 +61,7 @@ export default function Hero() {
         accurate, platform-ready product descriptions — without the guesswork or the agency bill.
       </p>
       <div className="hero-actions">
-        <a href="#start" className="btn-saffron">Generate a description</a>
+        <a href="#signup" className="btn-saffron" onClick={(e) => { e.preventDefault(); onNavigate("auth", "signup"); }}>Generate a description</a>
         <a href="#how" className="btn-outline">See how it works</a>
       </div>
       <div className="hero-divider" />

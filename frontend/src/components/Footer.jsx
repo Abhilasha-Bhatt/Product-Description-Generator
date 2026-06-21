@@ -35,7 +35,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="footer-bottom">
-        <span className="footer-copy">© 2025 FoodDescAI. All rights reserved.</span>
+        <span className="footer-copy">© 2026 FoodDescAI. All rights reserved.</span>
         <span className="footer-india">Made for food businesses in India 🇮🇳</span>
       </div>
     </footer>
