@@ -5,7 +5,7 @@ export default function CTAStrip({ onNavigate }) {
         <h2 className="cta-title">Ready to write your first listing?</h2>
         <p className="cta-sub">No account needed. Enter a product and get a description in under a minute.</p>
       </div>
-      <a href="#signup" className="btn-saffron" onClick={(e) => { e.preventDefault(); onNavigate("auth", "signup"); }} style={{ whiteSpace: "nowrap", flexShrink: 0 }}>
+      <a href="#generator" className="btn-saffron" onClick={(e) => { e.preventDefault(); onNavigate("generator"); }} style={{ whiteSpace: "nowrap", flexShrink: 0 }}>
         Open the generator
       </a>
     </section>

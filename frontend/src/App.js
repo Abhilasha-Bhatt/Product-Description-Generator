@@ -1,6 +1,7 @@
 import { useState } from "react";
 import HomePage from "./HomePage";
 import AuthPage from "./AuthPage";
+import GeneratorPage from "./GeneratorPage";
 
 function App() {
   const [page, setPage] = useState("home");
@@ -14,11 +15,9 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {page === "home" ? (
-        <HomePage onNavigate={navigateTo} />
-      ) : (
-        <AuthPage initialMode={authMode} onNavigate={navigateTo} />
-      )}
+      {page === "home" && <HomePage onNavigate={navigateTo} />}
+      {page === "auth" && <AuthPage initialMode={authMode} onNavigate={navigateTo} />}
+      {page === "generator" && <GeneratorPage onNavigate={navigateTo} />}
     </div>
   );
 }
