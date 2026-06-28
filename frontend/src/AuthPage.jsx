@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import "./AuthPage.css";
 
-export default function AuthPage({ initialMode = "login", onNavigate }) {
+export default function AuthPage({ initialMode = "login", onNavigate, onLoginSuccess, apiBaseUrl }) {
   const [mode, setMode] = useState(initialMode); // "login" | "signup"
   const [formData, setFormData] = useState({
     name: "",
@@ -16,6 +16,7 @@ export default function AuthPage({ initialMode = "login", onNavigate }) {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [apiError, setApiError] = useState(null);
 
   // Sync mode with props if it changes externally
   useEffect(() => {
@@ -30,6 +31,7 @@ export default function AuthPage({ initialMode = "login", onNavigate }) {
     });
     setErrors({});
     setSubmitSuccess(false);
+    setApiError(null);
   }, [initialMode]);
 
   const handleInputChange = (e) => {
@@ -42,6 +44,7 @@ export default function AuthPage({ initialMode = "login", onNavigate }) {
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
+    setApiError(null);
   };
 
   const validateForm = () => {
@@ -76,20 +79,41 @@ export default function AuthPage({ initialMode = "login", onNavigate }) {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setApiError(null);
     if (!validateForm()) return;
 
     setIsSubmitting(true);
-    // Simulate API request
-    setTimeout(() => {
+    try {
+      const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/signup";
+      const response = await fetch(`${apiBaseUrl}${endpoint}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          ...(mode === "signup" && { name: formData.name })
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.detail || "Something went wrong. Please try again.");
+      }
+
       setIsSubmitting(false);
       setSubmitSuccess(true);
-      // Wait a moment then navigate home
+      
       setTimeout(() => {
-        onNavigate("home");
+        onLoginSuccess(data.user, data.access_token);
       }, 1500);
-    }, 1200);
+    } catch (err) {
+      setIsSubmitting(false);
+      setApiError(err.message || "Connection refused. Make sure backend server is running.");
+    }
   };
 
   const toggleMode = () => {
@@ -104,6 +128,7 @@ export default function AuthPage({ initialMode = "login", onNavigate }) {
     });
     setErrors({});
     setSubmitSuccess(false);
+    setApiError(null);
   };
 
   return (
@@ -214,6 +239,22 @@ export default function AuthPage({ initialMode = "login", onNavigate }) {
             </div>
           ) : (
             <form className="auth-form" onSubmit={handleSubmit}>
+              {apiError && (
+                <div className="api-error-banner" style={{
+                  background: '#fff5f5',
+                  color: '#e53e3e',
+                  border: '1px solid #fed7d7',
+                  padding: '10px 14px',
+                  borderRadius: '6px',
+                  marginBottom: '15px',
+                  fontSize: '0.9rem',
+                  fontWeight: '500',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}>
+                  <span style={{ marginRight: '8px' }}>⚠️</span> {apiError}
+                </div>
+              )}
               {mode === "signup" && (
                 <div className="form-group">
                   <label htmlFor="name">Full Name</label>

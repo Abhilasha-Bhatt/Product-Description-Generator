@@ -6,10 +6,10 @@ import CTAStrip from "./components/CTAStrip";
 import Footer from "./components/Footer";
 import "./HomePage.css";
 
-export default function HomePage({ onNavigate }) {
+export default function HomePage({ onNavigate, currentUser, onLogout }) {
   return (
     <>
-      <Navbar onNavigate={onNavigate} />
+      <Navbar onNavigate={onNavigate} currentUser={currentUser} onLogout={onLogout} />
       <Hero onNavigate={onNavigate} />
       <FeaturesSection />
       <HowItWorks />
