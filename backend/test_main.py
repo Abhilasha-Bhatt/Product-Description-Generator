@@ -1,29 +1,52 @@
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 import os
-from backend.main import app, db
-from backend.database import JSONDatabase
+import sys
 
-# Use a test database to avoid messing with the production one
-TEST_DB_PATH = "backend/data/test_db.json"
+# Add backend directory to sys.path so we import the exact same modules as main.py does!
+backend_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+
+from database import Base, get_db
+from main import app
+
+from sqlalchemy.pool import StaticPool
+
+# Create in-memory SQLite database for testing
+SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool
+)
+TestingSessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine
+)
+
+# Set up test database tables
+Base.metadata.create_all(bind=engine)
+
+def override_get_db():
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+app.dependency_overrides[get_db] = override_get_db
 
 @pytest.fixture(autouse=True)
-def setup_test_db():
-    # Setup test database
-    if os.path.exists(TEST_DB_PATH):
-        os.remove(TEST_DB_PATH)
-    
-    # Overwrite the db object in main with our test database
-    test_db = JSONDatabase(db_path=TEST_DB_PATH)
-    app.dependency_overrides = {} # Reset overrides
-    import backend.main
-    backend.main.db = test_db
-    
+def setup_db():
+    # Recreate tables before each test to ensure a clean state
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
     yield
-    
-    # Clean up test database
-    if os.path.exists(TEST_DB_PATH):
-        os.remove(TEST_DB_PATH)
 
 client = TestClient(app)
 
@@ -151,8 +174,7 @@ def test_listings_crud():
     assert save_response.status_code == 201
     saved_data = save_response.json()
     assert "id" in saved_data
-    assert saved_data["productName"] == "Saffron Honey"
-    assert saved_data["user_email"] == "test@example.com"
+    assert saved_data["product_name"] == "Saffron Honey"
     listing_id = saved_data["id"]
     
     get_response = client.get("/api/listings", headers=headers)

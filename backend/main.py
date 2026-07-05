@@ -1,14 +1,17 @@
+from database import engine, get_db
+from models import Base
+
+Base.metadata.create_all(bind=engine)
+
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel, EmailStr
+from sqlalchemy.orm import Session
 from typing import List, Optional
-from backend.database import JSONDatabase
-import base64
-import hmac
-import hashlib
-import json
-from datetime import datetime, timedelta
+import models
+import schemas
+import crud
+import auth
 
 app = FastAPI(title="FoodDescAI API")
 
@@ -21,70 +24,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-db = JSONDatabase()
 security = HTTPBearer()
 
-SECRET_KEY = "fooddesc_secret_key_change_me_in_production"
-
-# Pure Python JWT implementation
-def create_access_token(data: dict) -> str:
-    expire = datetime.utcnow() + timedelta(days=7)
-    to_encode = data.copy()
-    to_encode.update({"exp": expire.isoformat()})
-    
-    header = {"alg": "HS256", "typ": "JWT"}
-    header_b64 = base64.urlsafe_b64encode(json.dumps(header).encode()).decode().rstrip("=")
-    payload_b64 = base64.urlsafe_b64encode(json.dumps(to_encode).encode()).decode().rstrip("=")
-    
-    signature = hmac.new(
-        SECRET_KEY.encode(),
-        f"{header_b64}.{payload_b64}".encode(),
-        hashlib.sha256
-    ).digest()
-    signature_b64 = base64.urlsafe_b64encode(signature).decode().rstrip("=")
-    
-    return f"{header_b64}.{payload_b64}.{signature_b64}"
-
-def verify_access_token(token: str) -> Optional[dict]:
-    try:
-        parts = token.split(".")
-        if len(parts) != 3:
-            return None
-        header_b64, payload_b64, signature_b64 = parts
-        
-        # Verify signature
-        expected_sig = hmac.new(
-            SECRET_KEY.encode(),
-            f"{header_b64}.{payload_b64}".encode(),
-            hashlib.sha256
-        ).digest()
-        expected_sig_b64 = base64.urlsafe_b64encode(expected_sig).decode().rstrip("=")
-        
-        if not hmac.compare_digest(signature_b64, expected_sig_b64):
-            return None
-            
-        # Decode payload
-        rem = len(payload_b64) % 4
-        if rem > 0:
-            payload_b64 += "=" * (4 - rem)
-        payload = json.loads(base64.urlsafe_b64decode(payload_b64.encode()).decode())
-        
-        # Check expiration
-        exp_str = payload.get("exp")
-        if not exp_str:
-            return None
-        exp = datetime.fromisoformat(exp_str)
-        if datetime.utcnow() > exp:
-            return None
-            
-        return payload
-    except Exception:
-        return None
-
 # Dependency to get current user from token
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+) -> models.User:
     token = credentials.credentials
-    payload = verify_access_token(token)
+    payload = auth.verify_access_token(token)
     if not payload:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -98,7 +46,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    user = db.get_user_by_email(email)
+    user = crud.get_user_by_email(db, email)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -106,34 +54,6 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
             headers={"WWW-Authenticate": "Bearer"},
         )
     return user
-
-# Pydantic Schemas
-class SignupRequest(BaseModel):
-    email: EmailStr
-    name: str
-    password: str
-
-class LoginRequest(BaseModel):
-    email: EmailStr
-    password: str
-
-class GenerateRequest(BaseModel):
-    productName: str
-    brandName: Optional[str] = ""
-    ingredients: str
-    tone: Optional[str] = "premium"
-    platform: Optional[str] = "general"
-
-class ListingSaveRequest(BaseModel):
-    productName: str
-    brandName: Optional[str] = ""
-    ingredients: str
-    tone: str
-    platform: str
-    title: str
-    description: str
-    bullets: List[str]
-    keywords: str
 
 # Mock AI Listing Generator (Ported to Backend)
 def generate_listing_content(product_name: str, brand_name: str, ingredients: str, tone: str, platform: str):
@@ -202,15 +122,15 @@ def generate_listing_content(product_name: str, brand_name: str, ingredients: st
     }
 
 # Endpoints
-@app.post("/api/auth/signup", status_code=status.HTTP_201_CREATED)
-def signup(req: SignupRequest):
+@app.post("/api/auth/signup", response_model=schemas.TokenResponse, status_code=status.HTTP_201_CREATED)
+def signup(req: schemas.SignupRequest, db: Session = Depends(get_db)):
     try:
-        user_info = db.create_user(req.email, req.name, req.password)
-        token = create_access_token(data={"sub": req.email})
+        user = crud.create_user(db, req.email, req.name, req.password)
+        token = auth.create_access_token(data={"sub": user.email})
         return {
             "access_token": token,
             "token_type": "bearer",
-            "user": user_info
+            "user": user
         }
     except ValueError as e:
         raise HTTPException(
@@ -218,34 +138,28 @@ def signup(req: SignupRequest):
             detail=str(e)
         )
 
-@app.post("/api/auth/login")
-def login(req: LoginRequest):
-    user = db.get_user_by_email(req.email)
-    if not user or not db.verify_password(req.password, user["hashed_password"]):
+@app.post("/api/auth/login", response_model=schemas.TokenResponse)
+def login(req: schemas.LoginRequest, db: Session = Depends(get_db)):
+    user = crud.get_user_by_email(db, req.email)
+    if not user or not crud.verify_password(req.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    token = create_access_token(data={"sub": req.email})
+    token = auth.create_access_token(data={"sub": user.email})
     return {
         "access_token": token,
         "token_type": "bearer",
-        "user": {
-            "email": user["email"],
-            "name": user["name"]
-        }
+        "user": user
     }
 
-@app.get("/api/auth/me")
-def get_me(current_user: dict = Depends(get_current_user)):
-    return {
-        "email": current_user["email"],
-        "name": current_user["name"]
-    }
+@app.get("/api/auth/me", response_model=schemas.UserResponse)
+def get_me(current_user: models.User = Depends(get_current_user)):
+    return current_user
 
-@app.post("/api/generate")
-def generate(req: GenerateRequest):
+@app.post("/api/generate", response_model=schemas.GenerateResponse)
+def generate(req: schemas.GenerateRequest):
     if not req.productName.strip():
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -266,19 +180,57 @@ def generate(req: GenerateRequest):
     )
     return result
 
-@app.post("/api/listings", status_code=status.HTTP_201_CREATED)
-def save_listing(req: ListingSaveRequest, current_user: dict = Depends(get_current_user)):
-    new_listing = db.create_listing(current_user["email"], req.model_dump())
-    return new_listing
+@app.post("/api/listings", response_model=schemas.ListingResponse, status_code=status.HTTP_201_CREATED)
+def save_listing(
+    req: schemas.ListingSaveRequest,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    listing = crud.create_listing(db, current_user.id, req.model_dump())
+    return schemas.ListingResponse(
+        id=listing.id,
+        product_name=listing.product_name or "",
+        brand_name=listing.brand_name or "",
+        ingredients=listing.ingredients or "",
+        tone=listing.tone or "",
+        platform=listing.platform or "",
+        title=listing.title or "",
+        description=listing.description or "",
+        bullets=listing.bullets.split("\n") if listing.bullets else [],
+        keywords=listing.keywords or "",
+        created_at=listing.created_at
+    )
 
-@app.get("/api/listings")
-def get_listings(current_user: dict = Depends(get_current_user)):
-    listings = db.get_listings_by_user(current_user["email"])
-    return listings
+@app.get("/api/listings", response_model=List[schemas.ListingResponse])
+def get_listings(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    listings = crud.get_user_listings(db, current_user.id)
+    return [
+        schemas.ListingResponse(
+            id=l.id,
+            product_name=l.product_name or "",
+            brand_name=l.brand_name or "",
+            ingredients=l.ingredients or "",
+            tone=l.tone or "",
+            platform=l.platform or "",
+            title=l.title or "",
+            description=l.description or "",
+            bullets=l.bullets.split("\n") if l.bullets else [],
+            keywords=l.keywords or "",
+            created_at=l.created_at
+        )
+        for l in listings
+    ]
 
 @app.delete("/api/listings/{listing_id}")
-def delete_listing(listing_id: str, current_user: dict = Depends(get_current_user)):
-    success = db.delete_listing(listing_id, current_user["email"])
+def delete_listing(
+    listing_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    success = crud.delete_listing(db, listing_id, current_user.id)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
