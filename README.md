@@ -1,4 +1,5 @@
 # 🍽️ FoodDescAI - E-Commerce Product Description Generator
+<img src="assets/homepage.png" alt="Project Logo" width="1000" height="500">
 
 FoodDescAI is a modern, full-stack web application designed for food and beverage brands to compose premium, engaging, and **FSSAI Claim-Safe** e-commerce product listings. Leveraging **Google Gemini AI (`gemini-3.5-flash`)**, it generates SEO-friendly titles, descriptions, bullet points, and search keywords tailored to different target platforms and writing tones.
 
@@ -149,3 +150,10 @@ To run the test suite:
 
 ## 🔒 Security & Git Safety
 To maintain strict production security, all `.env` files are permanently ignored and will not be committed to Git. The project-level `.gitignore` blocks matching configuration patterns globally.
+
+Feel free to reach the author.
+
+[![Gmail](https://img.shields.io/badge/-Gmail-D14836?logo=gmail&logoColor=white&style=for-the-badge)](mailto:abhilashabhatt77@gmail.com)
+[![LinkedIn](https://img.shields.io/badge/-LinkedIn-blue?logo=linkedin&logoColor=white&style=for-the-badge)](https://www.linkedin.com/in/abhilasha-bhatt3/)
+[![GitHub](https://img.shields.io/badge/-GitHub-181717?logo=github&logoColor=white&style=for-the-badge)](https://github.com/Abhilasha-Bhatt)
+
