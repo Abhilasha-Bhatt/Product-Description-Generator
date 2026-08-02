@@ -1,3 +1,5 @@
+<img src="assets/homepage.png" alt="Project Logo" width="200" height="100">
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
