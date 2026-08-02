@@ -9,28 +9,28 @@ export default function Footer() {
         <div className="footer-col">
           <div className="footer-col-head">Product</div>
           <ul>
-            <li><a href="#">Features</a></li>
-            <li><a href="#">Pricing</a></li>
-            <li><a href="#">Changelog</a></li>
-            <li><a href="#">Roadmap</a></li>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#pricing">Pricing</a></li>
+            <li><a href="#changelog">Changelog</a></li>
+            <li><a href="#roadmap">Roadmap</a></li>
           </ul>
         </div>
         <div className="footer-col">
           <div className="footer-col-head">Resources</div>
           <ul>
-            <li><a href="#">Docs</a></li>
-            <li><a href="#">Writing guide</a></li>
-            <li><a href="#">Platform tips</a></li>
-            <li><a href="#">Support</a></li>
+            <li><a href="#docs">Docs</a></li>
+            <li><a href="#guide">Writing guide</a></li>
+            <li><a href="#tips">Platform tips</a></li>
+            <li><a href="#support">Support</a></li>
           </ul>
         </div>
         <div className="footer-col">
           <div className="footer-col-head">Company</div>
           <ul>
-            <li><a href="#">About</a></li>
-            <li><a href="#">Contact</a></li>
-            <li><a href="#">Privacy</a></li>
-            <li><a href="#">Terms</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#contact">Contact</a></li>
+            <li><a href="#privacy">Privacy</a></li>
+            <li><a href="#terms">Terms</a></li>
           </ul>
         </div>
       </div>

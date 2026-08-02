@@ -45,7 +45,7 @@ function App() {
     const raw   = localStorage.getItem("user")  || sessionStorage.getItem("user");
     if (token && raw) {
       try {
-        const user = JSON.parse(raw);
+        JSON.parse(raw);
         // Verify the token is still valid against the server
         fetch(`${API_BASE_URL}/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },

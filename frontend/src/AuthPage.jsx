@@ -409,7 +409,7 @@ function BrandPanel({ mode }) {
   const isLogin = mode === "login";
   return (
     <div className="brand-panel">
-      <a href="#" className="brand-logo">
+      <a href="/" className="brand-logo">
         <span className="brand-pip" /> FoodDescAI
       </a>
       <div className="brand-mid">
