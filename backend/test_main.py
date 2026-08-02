@@ -75,6 +75,29 @@ def test_signup_duplicate_email():
     assert response.status_code == 400
     assert response.json()["detail"] == "User with this email already exists"
 
+def test_register_success():
+    payload = {
+        "email": "register@example.com",
+        "password": "password123"
+    }
+    response = client.post("/api/auth/register", json=payload)
+    assert response.status_code == 201
+    data = response.json()
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"
+    assert data["user"]["email"] == "register@example.com"
+    assert data["user"]["name"] == "register"
+
+def test_register_duplicate_email():
+    payload = {
+        "email": "register@example.com",
+        "password": "password123"
+    }
+    client.post("/api/auth/register", json=payload)
+    response = client.post("/api/auth/register", json=payload)
+    assert response.status_code == 400
+    assert response.json()["detail"] == "User with this email already exists"
+
 def test_login_success():
     signup_payload = {
         "email": "test@example.com",
@@ -147,6 +170,38 @@ def test_generate_validation_error():
         "ingredients": "honey"
     }
     response = client.post("/api/generate", json=payload)
+    assert response.status_code == 422
+
+from unittest.mock import patch, AsyncMock
+
+@patch("ai.generate_listing_ai", new_callable=AsyncMock)
+def test_generate_ai_success(mock_gen):
+    mock_gen.return_value = {
+        "title": "Mock Title",
+        "description": "Mock Description",
+        "bullets": ["Bullet 1", "Bullet 2"],
+        "keywords": "mock, keywords"
+    }
+    payload = {
+        "productName": "Honey Mustard",
+        "brandName": "BeeKind",
+        "ingredients": "Organic honey, whole mustard seeds, apple cider vinegar",
+        "tone": "health",
+        "platform": "amazon"
+    }
+    response = client.post("/api/ai/generate", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["title"] == "Mock Title"
+    assert data["description"] == "Mock Description"
+    mock_gen.assert_called_once()
+
+def test_generate_ai_validation_error():
+    payload = {
+        "productName": "",
+        "ingredients": "honey"
+    }
+    response = client.post("/api/ai/generate", json=payload)
     assert response.status_code == 422
 
 def test_listings_crud():

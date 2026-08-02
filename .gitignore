@@ -1,0 +1,10 @@
+.env
+.env.*
+backend/.env
+backend/fooddescai.db
+backend/__pycache__/
+backend/.pytest_cache/
+node_modules/
+.DS_Store
+*.pyc
+

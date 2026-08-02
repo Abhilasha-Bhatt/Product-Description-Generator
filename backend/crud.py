@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from models import User, Listing
 import hashlib
 import secrets
+import auth
 
 
 # -------------------------
@@ -9,19 +10,15 @@ import secrets
 # -------------------------
 
 def hash_password(password: str) -> str:
-    salt = secrets.token_hex(16)
-
-    key = hashlib.pbkdf2_hmac(
-        "sha256",
-        password.encode("utf-8"),
-        salt.encode("utf-8"),
-        100000,
-    )
-
-    return f"{salt}:{key.hex()}"
+    return auth.hash_password(password)
 
 
 def verify_password(password: str, hashed_password: str) -> bool:
+    # If the password hash looks like a bcrypt hash (starts with $2a$, $2b$, or $2y$)
+    if hashed_password and hashed_password.startswith("$2"):
+        return auth.verify_password(password, hashed_password)
+
+    # Fallback to PBKDF2 for old/existing user records
     try:
         salt, key_hex = hashed_password.split(":")
 

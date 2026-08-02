@@ -13,6 +13,12 @@ class SignupRequest(BaseModel):
     password: str
 
 
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    password: str
+    name: Optional[str] = None
+
+
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
