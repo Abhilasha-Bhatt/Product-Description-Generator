@@ -1,5 +1,5 @@
-from database import engine, get_db
-from models import Base
+from .database import engine, get_db
+from .models import Base
 
 Base.metadata.create_all(bind=engine)
 
@@ -14,10 +14,7 @@ import os
 import httpx
 from dotenv import load_dotenv
 
-import models
-import schemas
-import crud
-import auth
+from . import models, schemas, crud, auth
 
 load_dotenv()
 
@@ -378,7 +375,7 @@ async def generate_ai(req: schemas.GenerateRequest):
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Ingredients cannot be empty",
         )
-    from ai import generate_listing_ai
+    from .ai import generate_listing_ai
 
     try:
         result = await generate_listing_ai(

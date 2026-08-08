@@ -5,13 +5,8 @@ from sqlalchemy.orm import sessionmaker
 import os
 import sys
 
-# Add backend directory to sys.path so we import the exact same modules as main.py does!
-backend_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
-if backend_dir not in sys.path:
-    sys.path.insert(0, backend_dir)
-
-from database import Base, get_db
-from main import app
+from backend.database import Base, get_db
+from backend.main import app
 
 from sqlalchemy.pool import StaticPool
 

@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
-from models import User, Listing
+from .models import User, Listing
 import hashlib
 import secrets
-import auth
+from . import auth
 
 
 # -------------------------
